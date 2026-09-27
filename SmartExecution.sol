@@ -22,6 +22,10 @@ contract SmartExecution {
         address thisAddress = THIS_ADDRESS;
         assembly ("memory-safe") {
             let ptr := mload(0x40)
+            mstore(ptr, caller())
+            mstore(add(ptr, 0x20), callvalue())
+            mstore(add(ptr, 0x40), calldatasize())
+            mstore(add(ptr, 0x60), returndatasize())
             for { let i } 1 {} {
                 switch lt(i, calldatasize())
                 case 0 {
