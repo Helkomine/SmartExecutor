@@ -2,7 +2,7 @@
 pragma solidity ^0.8.30;
 /// @author Helkomine (@Helkomine)
 
-contract SmartExecution {
+contract SmartExecutor {
     error AuthenticateFailed();
 
     address immutable THIS_ADDRESS = address(this);
