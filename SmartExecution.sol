@@ -69,7 +69,7 @@ contract SmartExecutor {
                         } default {
                             let dest := calldataload(add(i, 1))
                             let b := calldataload(add(i, 33))
-                            switch b 
+                            switch mload(b) 
                             case 1 {
                                 i := dest
                             } default {
