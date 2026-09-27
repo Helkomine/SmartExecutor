@@ -84,21 +84,26 @@ contract SmartExecution {
                                 let reference := calldataload(add(i, 1))
                                 pointer := add(ptr, reference)
                             }
+                            let success
                             {
                                 let g := mload(pointer)
                                 let target := mload(add(pointer, 0x20))
                                 let value := mload(add(pointer, 0x40))
                                 let off := mload(add(pointer, 0x60))
+                                let instance := add(ptr, off)
                                 let siz := mload(add(pointer, 0x80))
-                                let success := call(g, target, value, add(ptr, off), siz, 0, 0)
+                                success := call(g, target, value, instance, siz, 0, 0)
                             }
-                            let dest := mload(add(pointer, 0xc0))
                             let dismissRevert := mload(add(pointer, 0xa0))
                             switch dismissRevert
                             case 0 {
-                                returndatacopy(ptr, 0, returndatasize())
-                                revert(0, returndatasize())
-                            } 
+                                if not(success) {
+                                    returndatacopy(ptr, 0, returndatasize())
+                                    revert(0, returndatasize())
+                                }
+                            }
+                            let dest := mload(add(pointer, 0xc0))
+                            mstore(add(ptr, dest), success)
                             i := add(i, 33)
                         // SELFCALL
                         } default {
@@ -112,16 +117,18 @@ contract SmartExecution {
                                 let g := mload(pointer)
                                 let off := mload(add(pointer, 0x20))
                                 let siz := mload(add(pointer, 0x40))
+                                tstore(reentrant.slot, 1)
                                 success := delegatecall(g, thisAddress, off, siz, 0, 0)
                             }
                             let dismissRevert := mload(add(pointer, 0x60))
-                            let dest := mload(add(pointer, 0x80))
-                            tstore(reentrant.slot, 1)
                             switch dismissRevert
                             case 0 {
-                                returndatacopy(ptr, 0, returndatasize())
-                                revert(0, returndatasize())
+                                if not(success) {
+                                    returndatacopy(ptr, 0, returndatasize())
+                                    revert(0, returndatasize())
+                                }
                             }
+                            let dest := mload(add(pointer, 0x80))
                             mstore(dest, success)
                             i := add(i, 33)
                         }
@@ -146,8 +153,10 @@ contract SmartExecution {
                             let dest := mload(add(pointer, 0xa0))
                             switch dismissRevert
                             case 0 {
-                                returndatacopy(ptr, 0, returndatasize())
-                                revert(0, returndatasize())
+                                if not(success) {
+                                    returndatacopy(ptr, 0, returndatasize())
+                                    revert(0, returndatasize())
+                                }
                             }
                             mstore(dest, success)
                             i := add(i, 33)
