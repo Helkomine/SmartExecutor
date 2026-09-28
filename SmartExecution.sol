@@ -5,16 +5,16 @@ pragma solidity ^0.8.30;
 contract SmartExecutor {
     address immutable THIS_ADDRESS = address(this);
 
-    bool transient reentrant;
-    bool transient selfcall;
+    bool transient executionActive;
+    bool transient selfcallAllowed;
 
     modifier authenticateAccess() {
-        if (!reentrant) {
-            reentrant = true;
+        if (!executionActive) {
+            executionActive = true;
             _;
-            reentrant = false;
-        } else if (selfcall) {
-            selfcall = false;
+            executionActive = false;
+        } else if (selfcallAllowed) {
+            selfcallAllowed = false;
             _;
         }
     }
@@ -46,6 +46,7 @@ contract SmartExecutor {
                         case 1 {
                             let destOff := calldataload(add(i, 1))
                             let siz := calldataload(add(i, 33))
+                            if lt(destOff, 0x80) { revert(0, 0) }
                             calldatacopy(add(ptr, destOff), add(i, 65), siz)
                             i := add(i, add(siz, 65))
                         // RETURNDATACOPY
@@ -53,6 +54,7 @@ contract SmartExecutor {
                             let destOff := calldataload(add(i, 1))
                             let off := calldataload(add(i, 33))
                             let siz := calldataload(add(i, 65))
+                            if lt(destOff, 0x80) { revert(0, 0) }
                             returndatacopy(add(ptr, destOff), off, siz)
                             i := add(i, 97)
                         }
@@ -63,6 +65,7 @@ contract SmartExecutor {
                             let destOff := calldataload(add(i, 1))
                             let off := calldataload(add(i, 33))
                             let siz := calldataload(add(i, 65))
+                            if lt(destOff, 0x80) { revert(0, 0) }
                             mcopy(add(ptr, destOff), off, siz)
                             i := add(i, 97)
                         // JUMPI
@@ -86,6 +89,7 @@ contract SmartExecutor {
                             let pointer
                             {
                                 let reference := calldataload(add(i, 1))
+                                if lt(reference, 0x80) { revert(0, 0) }
                                 pointer := add(ptr, reference)
                             }
                             let success
@@ -115,6 +119,7 @@ contract SmartExecutor {
                             let pointer
                             {
                                 let reference := calldataload(add(i, 1))
+                                if lt(reference, 0x80) { revert(0, 0) }
                                 pointer := add(ptr, reference)
                             }
                             let success
@@ -122,7 +127,7 @@ contract SmartExecutor {
                                 let g := mload(pointer)
                                 let off := mload(add(pointer, 0x20))
                                 let siz := mload(add(pointer, 0x40))
-                                tstore(reentrant.slot, 1)
+                                tstore(selfcallAllowed.slot, 1)
                                 success := delegatecall(g, thisAddress, off, siz, 0, 0)
                             }
                             let dismissRevert := mload(add(pointer, 0x60))
@@ -144,6 +149,7 @@ contract SmartExecutor {
                             let pointer
                             {
                                 let reference := calldataload(add(i, 1))
+                                if lt(reference, 0x80) { revert(0, 0) }
                                 pointer := add(ptr, reference)
                             }
                             let success
