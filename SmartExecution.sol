@@ -3,19 +3,20 @@ pragma solidity ^0.8.30;
 /// @author Helkomine (@Helkomine)
 
 contract SmartExecutor {
-    error AuthenticateFailed();
-
     address immutable THIS_ADDRESS = address(this);
 
     bool transient reentrant;
     bool transient selfcall;
 
     modifier authenticateAccess() {
-        if (!reentrant) reentrant = true;
-        else if (selfcall) selfcall = false;
-        else revert AuthenticateFailed();
-        _;
-        reentrant = false;
+        if (!reentrant) {
+            reentrant = true;
+            _;
+            reentrant = false;
+        } else if (selfcall) {
+            selfcall = false;
+            _;
+        }
     }
 
     fallback() external payable authenticateAccess {
@@ -25,7 +26,6 @@ contract SmartExecutor {
             mstore(ptr, caller())
             mstore(add(ptr, 0x20), callvalue())
             mstore(add(ptr, 0x40), calldatasize())
-            mstore(add(ptr, 0x60), returndatasize())
             for { let i } 1 {} {
                 switch lt(i, calldatasize())
                 case 0 {
@@ -67,9 +67,9 @@ contract SmartExecutor {
                             i := add(i, 97)
                         // JUMPI
                         } default {
-                            let dest := calldataload(add(i, 1))
-                            let b := calldataload(add(i, 33))
-                            switch mload(b) 
+                            let b := calldataload(add(i, 1))
+                            let dest := calldataload(add(i, 33))
+                            switch mload(add(ptr, b)) 
                             case 1 {
                                 i := dest
                             } default {
@@ -97,6 +97,7 @@ contract SmartExecutor {
                                 let instance := add(ptr, off)
                                 let siz := mload(add(pointer, 0x80))
                                 success := call(g, target, value, instance, siz, 0, 0)
+                                mstore(add(ptr, 0x60), returndatasize())
                             }
                             let dismissRevert := mload(add(pointer, 0xa0))
                             switch dismissRevert
@@ -152,6 +153,7 @@ contract SmartExecutor {
                                 let off := mload(add(pointer, 0x40))
                                 let siz := mload(add(pointer, 0x60))
                                 success := staticcall(g, target, off, siz, 0, 0)
+                                mstore(add(ptr, 0x60), returndatasize())
                             }
                             let dismissRevert := mload(add(pointer, 0x80))
                             let dest := mload(add(pointer, 0xa0))
