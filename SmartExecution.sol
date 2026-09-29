@@ -138,7 +138,7 @@ abstract contract SmartExecutorBase {
                             let reference := calldataload(add(i, 65))
                             if lt(reference, 0x80) { revert(0, 0) }
                             let pointer := add(ptr, reference)
-                            tstore(EXECUTION_ACTIVE_SLOT, 1)
+                            tstore(SELFCALL_ALLOWED_SLOT, 1)
                             let success := delegatecall(
                                 mload(pointer), // gas
                                 thisAddress, // target
@@ -147,7 +147,7 @@ abstract contract SmartExecutorBase {
                                 0,
                                 0
                             )
-                            tstore(EXECUTION_ACTIVE_SLOT, 0)
+                            tstore(SELFCALL_ALLOWED_SLOT, 0)
                             let dismissRevert := mload(add(pointer, 0x20))
                             if and(iszero(iszero(dismissRevert)), not(success)) {
                                 returndatacopy(ptr, 0, returndatasize())
