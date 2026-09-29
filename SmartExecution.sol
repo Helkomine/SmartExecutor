@@ -3,22 +3,33 @@ pragma solidity ^0.8.30;
 /// @author Helkomine (@Helkomine)
 
 abstract contract SmartExecutorBase {
-    bytes32 constant RDS_SETINEL = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    bytes32 constant RDS_SENTINEL = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    // Tương đương với bytes32(erc7201("execution.active.slot")) trong Solidity
+    bytes32 constant EXECUTION_ACTIVE_SLOT = 0xe174ed4e3d54110b9a3972ebecc852a49167f466185871b52a883f777e94cd00;
+    // Tương đương với bytes32(erc7201("selfcall.allowed.slot")) trong Solidity
+    bytes32 constant SELFCALL_ALLOWED_SLOT = 0x81624f1200d77dfa9dc68baa8d4456dfb417af96605ea2c49ed860decf4d2400;
 
     address immutable THIS_ADDRESS = address(this);
 
-    bool transient executionActive;
-    // Biến đệm được thêm vào để ngăn compiler pack hai biến bool thành một slot, điều này dẫn đến ghi đè khi thao tác TSTORE tại slot được chỉ định trong khối mã assembly
-    bytes32 private transient _gap;
-    bool transient selfcallAllowed;
-
     modifier authenticateAccess() {
+        bool executionActive;
+        bool selfcallAllowed;
+        assembly ("memory-safe") {
+            executionActive := tload(EXECUTION_ACTIVE_SLOT)
+            selfcallAllowed := tload(SELFCALL_ALLOWED_SLOT)
+        }
         if (!executionActive) {
-            executionActive = true;
+            assembly ("memory-safe") {
+                tstore(EXECUTION_ACTIVE_SLOT, 1)
+            }
             _;
-            executionActive = false;
+            assembly ("memory-safe") {
+                tstore(EXECUTION_ACTIVE_SLOT, 0)
+            }
         } else if (selfcallAllowed) {
-            selfcallAllowed = false;
+            assembly ("memory-safe") {
+                tstore(SELFCALL_ALLOWED_SLOT, 0)
+            }
             _;
         }
     }
@@ -58,7 +69,7 @@ abstract contract SmartExecutorBase {
                             let destOff := calldataload(add(i, 1))
                             let off := calldataload(add(i, 33))
                             let siz := calldataload(add(i, 65))
-                            if eq(siz, RDS_SETINEL) { siz := returndatasize() }
+                            if eq(siz, RDS_SENTINEL) { siz := returndatasize() }
                             if lt(destOff, 0x80) { revert(0, 0) }
                             returndatacopy(add(ptr, destOff), off, siz)
                             i := add(i, 97)
@@ -71,6 +82,7 @@ abstract contract SmartExecutorBase {
                             let off := calldataload(add(i, 33))
                             let siz := calldataload(add(i, 65))
                             if lt(destOff, 0x80) { revert(0, 0) }
+                            if lt(off, 0x80) { revert(0, 0) }
                             mcopy(add(ptr, destOff), add(ptr, off), siz)
                             i := add(i, 97)
                         // JUMPI
@@ -94,10 +106,10 @@ abstract contract SmartExecutorBase {
                             let off := calldataload(add(i, 1))
                             if lt(off, 0x80) { revert(0, 0) }
                             let siz := calldataload(add(i, 33))
+                            if eq(siz, RDS_SENTINEL) { siz := returndatasize() }
                             let reference := calldataload(add(i, 65))
                             if lt(reference, 0x80) { revert(0, 0) }
                             let pointer := add(ptr, reference)
-                            if eq(siz, RDS_SETINEL) { siz := returndatasize() }
                             let success := call(
                                 mload(pointer), // gas
                                 mload(add(pointer, 0x20)), // target
@@ -122,20 +134,20 @@ abstract contract SmartExecutorBase {
                             let off := calldataload(add(i, 1))
                             if lt(off, 0x80) { revert(0, 0) }
                             let siz := calldataload(add(i, 33))
+                            if eq(siz, RDS_SENTINEL) { siz := returndatasize() }
                             let reference := calldataload(add(i, 65))
                             if lt(reference, 0x80) { revert(0, 0) }
                             let pointer := add(ptr, reference)
-                            if eq(siz, RDS_SETINEL) { siz := returndatasize() }
-                            tstore(selfcallAllowed.slot, 1)
+                            tstore(EXECUTION_ACTIVE_SLOT, 1)
                             let success := delegatecall(
-                                mload(pointer),
-                                thisAddress,
-                                add(ptr, off),
+                                mload(pointer), // gas
+                                thisAddress, // target
+                                add(ptr, off), // relative offset
                                 siz,
                                 0,
                                 0
                             )
-                            tstore(selfcallAllowed.slot, 0)
+                            tstore(EXECUTION_ACTIVE_SLOT, 0)
                             let dismissRevert := mload(add(pointer, 0x20))
                             if and(iszero(iszero(dismissRevert)), not(success)) {
                                 returndatacopy(ptr, 0, returndatasize())
@@ -153,10 +165,10 @@ abstract contract SmartExecutorBase {
                             let off := calldataload(add(i, 1))
                             if lt(off, 0x80) { revert(0, 0) }
                             let siz := calldataload(add(i, 33))
+                            if eq(siz, RDS_SENTINEL) { siz := returndatasize() }
                             let reference := calldataload(add(i, 65))
                             if lt(reference, 0x80) { revert(0, 0) }
                             let pointer := add(ptr, reference)
-                            if eq(siz, RDS_SETINEL) { siz := returndatasize() }
                             let success := staticcall(
                                 mload(pointer),
                                 mload(add(pointer, 0x20)),
