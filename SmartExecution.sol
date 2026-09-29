@@ -41,16 +41,8 @@ abstract contract SmartExecutorBase {
             mstore(ptr, caller())
             mstore(add(ptr, 0x20), callvalue())
             mstore(add(ptr, 0x40), calldatasize())
-            for { let i } 1 {} {
-                switch lt(i, bytecode.length)
-                case 0 {
-                    switch eq(i, bytecode.length)
-                    case 0 {
-                        revert(0, 0)
-                    } default {
-                        break
-                    }
-                }
+            let lastOffset := add(bytecode.offset, bytecode.length)
+            for { let i := bytecode.offset } lt(i, lastOffset) {} {
                 let command := shr(248, calldataload(i))
                 switch lt(command, 4)
                 case 1 {
@@ -63,7 +55,11 @@ abstract contract SmartExecutorBase {
                             let siz := calldataload(add(i, 33))
                             if lt(destOff, 0x80) { revert(0, 0) }
                             calldatacopy(add(ptr, destOff), add(i, 65), siz)
-                            i := add(i, add(siz, 65))
+                            let staticPc := add(i, 65)
+                            if gt(staticPc, lastOffset) { revert(0, 0) }
+                            let newPc := add(staticPc, siz)
+                            if gt(newPc, lastOffset) { revert(0, 0) }
+                            i := newPc
                         // RETURNDATACOPY
                         } default {
                             let destOff := calldataload(add(i, 1))
@@ -72,7 +68,9 @@ abstract contract SmartExecutorBase {
                             if eq(siz, RDS_SENTINEL) { siz := returndatasize() }
                             if lt(destOff, 0x80) { revert(0, 0) }
                             returndatacopy(add(ptr, destOff), off, siz)
-                            i := add(i, 97)
+                            let newPc := add(i, 97)
+                            if gt(newPc, lastOffset) { revert(0, 0) }
+                            i := newPc
                         }
                     } default {
                         switch lt(command, 3)
@@ -82,18 +80,23 @@ abstract contract SmartExecutorBase {
                             let off := calldataload(add(i, 33))
                             let siz := calldataload(add(i, 65))
                             if lt(destOff, 0x80) { revert(0, 0) }
-                            if lt(off, 0x80) { revert(0, 0) }
                             mcopy(add(ptr, destOff), add(ptr, off), siz)
-                            i := add(i, 97)
+                            let newPc := add(i, 97)
+                            if gt(newPc, lastOffset) { revert(0, 0) }
+                            i := newPc
                         // JUMPI
                         } default {
+                            let newPc := add(i, 65)
+                            if gt(newPc, lastOffset) { revert(0, 0) }
                             let b := calldataload(add(i, 1))
-                            let dest := calldataload(add(i, 33))
+                            if lt(b, 0x80) { revert(0, 0) }
+                            let jumpPc := calldataload(add(i, 33))
+                            if gt(jumpPc, lastOffset) { revert(0, 0) }
                             switch mload(add(ptr, b)) 
                             case 0 {
-                                i := add(i, 65)
+                                i := newPc
                             } default {
-                                i := dest
+                                i := jumpPc
                             }
                         }
                     }
@@ -128,7 +131,9 @@ abstract contract SmartExecutorBase {
                             let dest := calldataload(add(i, 97))
                             if lt(dest, 0x80) { revert(0, 0) }
                             mstore(add(ptr, dest), success)
-                            i := add(i, 129)
+                            let newPc := add(i, 129)
+                            if gt(newPc, lastOffset) { revert(0, 0) }
+                            i := newPc
                         // SELFCALL
                         } default {
                             let off := calldataload(add(i, 1))
@@ -156,7 +161,9 @@ abstract contract SmartExecutorBase {
                             let dest := calldataload(add(i, 97))
                             if lt(dest, 0x80) { revert(0, 0) }
                             mstore(add(ptr, dest), success)
-                            i := add(i, 129)
+                            let newPc := add(i, 129)
+                            if gt(newPc, lastOffset) { revert(0, 0) }
+                            i := newPc
                         }
                     } default {
                         switch lt(command, 7)
@@ -186,7 +193,9 @@ abstract contract SmartExecutorBase {
                             let dest := calldataload(add(i, 97))
                             if lt(dest, 0x80) { revert(0, 0) }
                             mstore(add(ptr, dest), success)
-                            i := add(i, 129)
+                            let newPc := add(i, 129)
+                            if gt(newPc, lastOffset) { revert(0, 0) }
+                            i := newPc
                         // fallback
                         } default {
                             revert(0, 0)
