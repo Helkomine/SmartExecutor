@@ -88,11 +88,11 @@ abstract contract SmartExecutorBase {
                             if gt(end, lastOffset) { revert(0, 0) }
                             let destOffset := calldataload(add(i, 1))
                             let offset := calldataload(add(i, 33))
-                            let siz := calldataload(add(i, 65))
+                            let size := calldataload(add(i, 65))
                             if lt(destOffset, 0x80) { revert(0, 0) }
                             destOffset := add(ptr, destOffset)
                             if gt(ptr, destOffset) { revert(0, 0) } // overflow
-                            mcopy(destOffset, offset, siz)
+                            mcopy(destOffset, offset, size)
                             i := end
                         // JUMPI
                         } default {
