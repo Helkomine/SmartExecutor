@@ -60,7 +60,7 @@ abstract contract SmartExecutorBase {
                             if lt(destOffset, 0x80) { revert(0, 0) }
                             let size := calldataload(add(i, 33))
                             end := add(end, size)
-                            if gt(i, end) { revert(0, 0) } // overflow
+                            if gt(size, end) { revert(0, 0) } // overflow
                             if gt(end, lastOffset) { revert(0, 0) }
                             calldatacopy(add(ptr, destOffset), add(i, 65), size)
                             i := end
