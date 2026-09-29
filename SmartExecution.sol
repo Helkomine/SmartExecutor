@@ -3,7 +3,7 @@ pragma solidity ^0.8.30;
 /// @author Helkomine (@Helkomine)
 
 contract SmartExecutor {
-    bytes32 constant RETURNDATASIZE_SETINEL = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    bytes32 constant RDS_SETINEL = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
     address immutable THIS_ADDRESS = address(this);
 
@@ -152,6 +152,7 @@ contract SmartExecutor {
                                 let siz := calldataload(add(i, 33))
                                 tstore(selfcallAllowed.slot, 1)
                                 success := delegatecall(g, thisAddress, add(ptr, off), siz, 0, 0)
+                                tstore(selfcallAllowed.slot, 0)
                             }
                             let dismissRevert := mload(add(pointer, 0x20))
                             switch dismissRevert
