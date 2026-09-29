@@ -2,7 +2,7 @@
 pragma solidity ^0.8.30;
 /// @author Helkomine (@Helkomine)
 
-contract SmartExecutor {
+abstract contract SmartExecutorBase {
     bytes32 constant RDS_SETINEL = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
     address immutable THIS_ADDRESS = address(this);
@@ -23,7 +23,7 @@ contract SmartExecutor {
         }
     }
 
-    fallback() external payable authenticateAccess {
+    function _executeCode(bytes calldata bytecode) internal authenticateAccess {
         address thisAddress = THIS_ADDRESS;
         assembly ("memory-safe") {
             let ptr := mload(0x40)
@@ -31,9 +31,9 @@ contract SmartExecutor {
             mstore(add(ptr, 0x20), callvalue())
             mstore(add(ptr, 0x40), calldatasize())
             for { let i } 1 {} {
-                switch lt(i, calldatasize())
+                switch lt(i, bytecode.length)
                 case 0 {
-                    switch eq(i, calldatasize())
+                    switch eq(i, bytecode.length)
                     case 0 {
                         revert(0, 0)
                     } default {
@@ -91,63 +91,57 @@ contract SmartExecutor {
                         switch lt(command, 5)
                         // CALL
                         case 1 {
-                            let pointer
-                            {
-                                let reference := calldataload(add(i, 97))
-                                if lt(reference, 0x80) { revert(0, 0) }
-                                pointer := add(ptr, reference)
-                            }
-                            let success
-                            {
-                                let g := mload(pointer)
-                                let target := mload(add(pointer, 0x20))
-                                let value := mload(add(pointer, 0x40))
-                                let off := calldataload(add(i, 1))
-                                let instance := add(ptr, off)
-                                let siz := calldataload(add(i, 65))
-                                if eq(siz, RDS_SETINEL) { siz := returndatasize() }
-                                    success := call(g, target, value, instance, siz, 0, 0)
-                                    mstore(add(ptr, 0x60), returndatasize())
-                                }
+                            let off := calldataload(add(i, 1))
+                            if lt(off, 0x80) { revert(0, 0) }
+                            let siz := calldataload(add(i, 33))
+                            let reference := calldataload(add(i, 65))
+                            if lt(reference, 0x80) { revert(0, 0) }
+                            let pointer := add(ptr, reference)
+                            if eq(siz, RDS_SETINEL) { siz := returndatasize() }
+                            let success := call(
+                                mload(pointer), // gas
+                                mload(add(pointer, 0x20)), // target
+                                mload(add(pointer, 0x40)), // value
+                                add(ptr, off), // relative offset
+                                siz,
+                                0,
+                                0
+                            )
+                            mstore(add(ptr, 0x60), returndatasize())
                             let dismissRevert := mload(add(pointer, 0x60))
-                            switch dismissRevert
-                            case 0 {
-                                if not(success) {
-                                    returndatacopy(ptr, 0, returndatasize())
-                                    revert(0, returndatasize())
-                                }
+                            if and(iszero(iszero(dismissRevert)), not(success)) {
+                                returndatacopy(ptr, 0, returndatasize())
+                                revert(0, returndatasize())
                             }
-                            let dest := calldataload(add(i, 65))
+                            let dest := calldataload(add(i, 97))
                             if lt(dest, 0x80) { revert(0, 0) }
                             mstore(add(ptr, dest), success)
                             i := add(i, 129)
                         // SELFCALL
                         } default {
-                            let pointer
-                            {
-                                let reference := calldataload(add(i, 97))
-                                if lt(reference, 0x80) { revert(0, 0) }
-                                pointer := add(ptr, reference)
-                            }
-                            let success
-                            {
-                                let g := mload(pointer)
-                                let off := calldataload(add(i, 1))
-                                let siz := calldataload(add(i, 33))
-                                if eq(siz, RDS_SETINEL) { siz := returndatasize() }
-                                tstore(selfcallAllowed.slot, 1)
-                                success := delegatecall(g, thisAddress, add(ptr, off), siz, 0, 0)
-                                tstore(selfcallAllowed.slot, 0)
-                            }
+                            let off := calldataload(add(i, 1))
+                            if lt(off, 0x80) { revert(0, 0) }
+                            let siz := calldataload(add(i, 33))
+                            let reference := calldataload(add(i, 65))
+                            if lt(reference, 0x80) { revert(0, 0) }
+                            let pointer := add(ptr, reference)
+                            if eq(siz, RDS_SETINEL) { siz := returndatasize() }
+                            tstore(selfcallAllowed.slot, 1)
+                            let success := delegatecall(
+                                mload(pointer),
+                                thisAddress,
+                                add(ptr, off),
+                                siz,
+                                0,
+                                0
+                            )
+                            tstore(selfcallAllowed.slot, 0)
                             let dismissRevert := mload(add(pointer, 0x20))
-                            switch dismissRevert
-                            case 0 {
-                                if not(success) {
-                                    returndatacopy(ptr, 0, returndatasize())
-                                    revert(0, returndatasize())
-                                }
+                            if and(iszero(iszero(dismissRevert)), not(success)) {
+                                returndatacopy(ptr, 0, returndatasize())
+                                revert(0, returndatasize())
                             }
-                            let dest := calldataload(add(i, 65))
+                            let dest := calldataload(add(i, 97))
                             if lt(dest, 0x80) { revert(0, 0) }
                             mstore(add(ptr, dest), success)
                             i := add(i, 129)
@@ -156,31 +150,28 @@ contract SmartExecutor {
                         switch lt(command, 7)
                         // STATICCALL
                         case 1 {
-                            let pointer
-                            {
-                                let reference := calldataload(add(i, 97))
-                                if lt(reference, 0x80) { revert(0, 0) }
-                                pointer := add(ptr, reference)
-                            }
-                            let success
-                            {
-                                let g := mload(pointer)
-                                let target := mload(add(pointer, 0x20))
-                                let off := calldataload(add(i, 1))
-                                let siz := calldataload(add(i, 33))
-                                if eq(siz, RDS_SETINEL) { siz := returndatasize() }
-                                success := staticcall(g, target, add(ptr, off), siz, 0, 0)
-                                mstore(add(ptr, 0x60), returndatasize())
-                            }
+                            let off := calldataload(add(i, 1))
+                            if lt(off, 0x80) { revert(0, 0) }
+                            let siz := calldataload(add(i, 33))
+                            let reference := calldataload(add(i, 65))
+                            if lt(reference, 0x80) { revert(0, 0) }
+                            let pointer := add(ptr, reference)
+                            if eq(siz, RDS_SETINEL) { siz := returndatasize() }
+                            let success := staticcall(
+                                mload(pointer),
+                                mload(add(pointer, 0x20)),
+                                add(ptr, off),
+                                siz,
+                                0,
+                                0
+                            )
+                            mstore(add(ptr, 0x60), returndatasize())
                             let dismissRevert := mload(add(pointer, 0x40))
-                            switch dismissRevert
-                            case 0 {
-                                if not(success) {
-                                    returndatacopy(ptr, 0, returndatasize())
-                                    revert(0, returndatasize())
-                                }
+                            if and(iszero(iszero(dismissRevert)), not(success)) {
+                                returndatacopy(ptr, 0, returndatasize())
+                                revert(0, returndatasize())
                             }
-                            let dest := calldataload(add(i, 65))
+                            let dest := calldataload(add(i, 97))
                             if lt(dest, 0x80) { revert(0, 0) }
                             mstore(add(ptr, dest), success)
                             i := add(i, 129)
@@ -192,5 +183,11 @@ contract SmartExecutor {
                 }
             }
         }
+    }
+}
+
+contract SmartExecutor is SmartExecutorBase {
+    fallback() external payable {
+        _executeCode(msg.data);
     }
 }
