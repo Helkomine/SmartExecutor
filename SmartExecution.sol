@@ -57,13 +57,8 @@ contract SmartExecutor {
                         } default {
                             let destOff := calldataload(add(i, 1))
                             let off := calldataload(add(i, 33))
-                            let siz
-                            switch eq(siz, RETURNDATASIZE_SETINEL)
-                            case 1 {
-                                siz := returndatasize()
-                            } default {
-                                siz := calldataload(add(i, 65))
-                            }
+                            let siz := calldataload(add(i, 65))
+                            if eq(siz, RDS_SETINEL) { siz := returndatasize() }
                             if lt(destOff, 0x80) { revert(0, 0) }
                             returndatacopy(add(ptr, destOff), off, siz)
                             i := add(i, 97)
@@ -74,13 +69,7 @@ contract SmartExecutor {
                         case 1 {
                             let destOff := calldataload(add(i, 1))
                             let off := calldataload(add(i, 33))
-                            let siz
-                            switch eq(siz, RETURNDATASIZE_SETINEL)
-                            case 1 {
-                                siz := returndatasize()
-                            } default {
-                                siz := calldataload(add(i, 65))
-                            }
+                            let siz := calldataload(add(i, 65))
                             if lt(destOff, 0x80) { revert(0, 0) }
                             mcopy(add(ptr, destOff), add(ptr, off), siz)
                             i := add(i, 97)
@@ -115,16 +104,11 @@ contract SmartExecutor {
                                 let value := mload(add(pointer, 0x40))
                                 let off := calldataload(add(i, 1))
                                 let instance := add(ptr, off)
-                                let siz
-                                switch eq(siz, RETURNDATASIZE_SETINEL)
-                                case 1 {
-                                    siz := returndatasize()
-                                } default {
-                                    siz := calldataload(add(i, 33))
+                                let siz := calldataload(add(i, 65))
+                                if eq(siz, RDS_SETINEL) { siz := returndatasize() }
+                                    success := call(g, target, value, instance, siz, 0, 0)
+                                    mstore(add(ptr, 0x60), returndatasize())
                                 }
-                                success := call(g, target, value, instance, siz, 0, 0)
-                                mstore(add(ptr, 0x60), returndatasize())
-                            }
                             let dismissRevert := mload(add(pointer, 0x60))
                             switch dismissRevert
                             case 0 {
@@ -150,6 +134,7 @@ contract SmartExecutor {
                                 let g := mload(pointer)
                                 let off := calldataload(add(i, 1))
                                 let siz := calldataload(add(i, 33))
+                                if eq(siz, RDS_SETINEL) { siz := returndatasize() }
                                 tstore(selfcallAllowed.slot, 1)
                                 success := delegatecall(g, thisAddress, add(ptr, off), siz, 0, 0)
                                 tstore(selfcallAllowed.slot, 0)
@@ -183,6 +168,7 @@ contract SmartExecutor {
                                 let target := mload(add(pointer, 0x20))
                                 let off := calldataload(add(i, 1))
                                 let siz := calldataload(add(i, 33))
+                                if eq(siz, RDS_SETINEL) { siz := returndatasize() }
                                 success := staticcall(g, target, add(ptr, off), siz, 0, 0)
                                 mstore(add(ptr, 0x60), returndatasize())
                             }
