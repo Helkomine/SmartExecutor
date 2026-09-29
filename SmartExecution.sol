@@ -74,9 +74,9 @@ abstract contract SmartExecutorBase {
                             let size := calldataload(add(i, 65))
                             if eq(size, RDS_SENTINEL) { size := returndatasize() }
                             if lt(destOffset, 0x80) { revert(0, 0) }
-                            let pos := add(ptr, destOffset)
-                            if gt(destOffset, pos) { revert(0, 0) } // overflow
-                            returndatacopy(pos, offset, size)
+                            destOffset := add(ptr, destOffset)
+                            if gt(ptr, destOffset) { revert(0, 0) } // overflow
+                            returndatacopy(destOffset, offset, size)
                             i := end
                         }
                     } default {
@@ -90,9 +90,9 @@ abstract contract SmartExecutorBase {
                             let offset := calldataload(add(i, 33))
                             let siz := calldataload(add(i, 65))
                             if lt(destOffset, 0x80) { revert(0, 0) }
-                            let pos := add(ptr, destOffset)
-                            if gt(destOffset, pos) { revert(0, 0) } // overflow
-                            mcopy(pos, add(ptr, offset), siz)
+                            destOffset := add(ptr, destOffset)
+                            if gt(ptr, destOffset) { revert(0, 0) } // overflow
+                            mcopy(destOffset, offset, siz)
                             i := end
                         // JUMPI
                         } default {
