@@ -3,9 +3,13 @@ pragma solidity ^0.8.30;
 /// @author Helkomine (@Helkomine)
 
 contract SmartExecutor {
+    bytes32 constant RETURNDATASIZE_SETINEL = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+
     address immutable THIS_ADDRESS = address(this);
 
     bool transient executionActive;
+    // Biến đệm được thêm vào để ngăn compiler pack hai biến bool thành một slot, điều này dẫn đến ghi đè khi thao tác TSTORE tại slot được chỉ định trong khối mã assembly
+    bytes32 private transient _gap;
     bool transient selfcallAllowed;
 
     modifier authenticateAccess() {
@@ -53,7 +57,13 @@ contract SmartExecutor {
                         } default {
                             let destOff := calldataload(add(i, 1))
                             let off := calldataload(add(i, 33))
-                            let siz := calldataload(add(i, 65))
+                            let siz
+                            switch eq(siz, RETURNDATASIZE_SETINEL)
+                            case 1 {
+                                siz := returndatasize()
+                            } default {
+                                siz := calldataload(add(i, 65))
+                            }
                             if lt(destOff, 0x80) { revert(0, 0) }
                             returndatacopy(add(ptr, destOff), off, siz)
                             i := add(i, 97)
@@ -64,7 +74,13 @@ contract SmartExecutor {
                         case 1 {
                             let destOff := calldataload(add(i, 1))
                             let off := calldataload(add(i, 33))
-                            let siz := calldataload(add(i, 65))
+                            let siz
+                            switch eq(siz, RETURNDATASIZE_SETINEL)
+                            case 1 {
+                                siz := returndatasize()
+                            } default {
+                                siz := calldataload(add(i, 65))
+                            }
                             if lt(destOff, 0x80) { revert(0, 0) }
                             mcopy(add(ptr, destOff), off, siz)
                             i := add(i, 97)
@@ -73,10 +89,10 @@ contract SmartExecutor {
                             let b := calldataload(add(i, 1))
                             let dest := calldataload(add(i, 33))
                             switch mload(add(ptr, b)) 
-                            case 1 {
-                                i := dest
-                            } default {
+                            case 0 {
                                 i := add(i, 65)
+                            } default {
+                                i := dest
                             }
                         }
                     }
@@ -88,7 +104,7 @@ contract SmartExecutor {
                         case 1 {
                             let pointer
                             {
-                                let reference := calldataload(add(i, 1))
+                                let reference := calldataload(add(i, 97))
                                 if lt(reference, 0x80) { revert(0, 0) }
                                 pointer := add(ptr, reference)
                             }
@@ -97,9 +113,15 @@ contract SmartExecutor {
                                 let g := mload(pointer)
                                 let target := mload(add(pointer, 0x20))
                                 let value := mload(add(pointer, 0x40))
-                                let off := mload(add(pointer, 0x60))
+                                let off := calldataload(add(i, 1))
                                 let instance := add(ptr, off)
-                                let siz := mload(add(pointer, 0x80))
+                                let siz
+                                switch eq(siz, RETURNDATASIZE_SETINEL)
+                                case 1 {
+                                    siz := returndatasize()
+                                } default {
+                                    siz := calldataload(add(i, 33))
+                                }
                                 success := call(g, target, value, instance, siz, 0, 0)
                                 mstore(add(ptr, 0x60), returndatasize())
                             }
@@ -111,24 +133,25 @@ contract SmartExecutor {
                                     revert(0, returndatasize())
                                 }
                             }
-                            let dest := mload(add(pointer, 0xc0))
+                            let dest := calldataload(add(i, 65))
+                            if lt(dest, 0x80) { revert(0, 0) }
                             mstore(add(ptr, dest), success)
-                            i := add(i, 33)
+                            i := add(i, 129)
                         // SELFCALL
                         } default {
                             let pointer
                             {
-                                let reference := calldataload(add(i, 1))
+                                let reference := calldataload(add(i, 97))
                                 if lt(reference, 0x80) { revert(0, 0) }
                                 pointer := add(ptr, reference)
                             }
                             let success
                             {
                                 let g := mload(pointer)
-                                let off := mload(add(pointer, 0x20))
-                                let siz := mload(add(pointer, 0x40))
+                                let off := calldataload(add(i, 1))
+                                let siz := calldataload(add(i, 33))
                                 tstore(selfcallAllowed.slot, 1)
-                                success := delegatecall(g, thisAddress, off, siz, 0, 0)
+                                success := delegatecall(g, thisAddress, add(ptr, off), siz, 0, 0)
                             }
                             let dismissRevert := mload(add(pointer, 0x60))
                             switch dismissRevert
@@ -138,9 +161,10 @@ contract SmartExecutor {
                                     revert(0, returndatasize())
                                 }
                             }
-                            let dest := mload(add(pointer, 0x80))
-                            mstore(dest, success)
-                            i := add(i, 33)
+                            let dest := calldataload(add(i, 65))
+                            if lt(dest, 0x80) { revert(0, 0) }
+                            mstore(add(ptr, dest), success)
+                            i := add(i, 129)
                         }
                     } default {
                         switch lt(command, 7)
@@ -148,7 +172,7 @@ contract SmartExecutor {
                         case 1 {
                             let pointer
                             {
-                                let reference := calldataload(add(i, 1))
+                                let reference := calldataload(add(i, 97))
                                 if lt(reference, 0x80) { revert(0, 0) }
                                 pointer := add(ptr, reference)
                             }
@@ -156,13 +180,12 @@ contract SmartExecutor {
                             {
                                 let g := mload(pointer)
                                 let target := mload(add(pointer, 0x20))
-                                let off := mload(add(pointer, 0x40))
-                                let siz := mload(add(pointer, 0x60))
-                                success := staticcall(g, target, off, siz, 0, 0)
+                                let off := calldataload(add(i, 1))
+                                let siz := calldataload(add(i, 33))
+                                success := staticcall(g, target, add(ptr, off), siz, 0, 0)
                                 mstore(add(ptr, 0x60), returndatasize())
                             }
                             let dismissRevert := mload(add(pointer, 0x80))
-                            let dest := mload(add(pointer, 0xa0))
                             switch dismissRevert
                             case 0 {
                                 if not(success) {
@@ -170,8 +193,10 @@ contract SmartExecutor {
                                     revert(0, returndatasize())
                                 }
                             }
-                            mstore(dest, success)
-                            i := add(i, 33)
+                            let dest := calldataload(add(i, 65))
+                            if lt(dest, 0x80) { revert(0, 0) }
+                            mstore(add(ptr, dest), success)
+                            i := add(i, 129)
                         // fallback
                         } default {
                             revert(0, 0)
