@@ -82,7 +82,7 @@ contract SmartExecutor {
                                 siz := calldataload(add(i, 65))
                             }
                             if lt(destOff, 0x80) { revert(0, 0) }
-                            mcopy(add(ptr, destOff), off, siz)
+                            mcopy(add(ptr, destOff), add(ptr, off), siz)
                             i := add(i, 97)
                         // JUMPI
                         } default {
@@ -125,7 +125,7 @@ contract SmartExecutor {
                                 success := call(g, target, value, instance, siz, 0, 0)
                                 mstore(add(ptr, 0x60), returndatasize())
                             }
-                            let dismissRevert := mload(add(pointer, 0xa0))
+                            let dismissRevert := mload(add(pointer, 0x60))
                             switch dismissRevert
                             case 0 {
                                 if not(success) {
@@ -153,7 +153,7 @@ contract SmartExecutor {
                                 tstore(selfcallAllowed.slot, 1)
                                 success := delegatecall(g, thisAddress, add(ptr, off), siz, 0, 0)
                             }
-                            let dismissRevert := mload(add(pointer, 0x60))
+                            let dismissRevert := mload(add(pointer, 0x20))
                             switch dismissRevert
                             case 0 {
                                 if not(success) {
@@ -185,7 +185,7 @@ contract SmartExecutor {
                                 success := staticcall(g, target, add(ptr, off), siz, 0, 0)
                                 mstore(add(ptr, 0x60), returndatasize())
                             }
-                            let dismissRevert := mload(add(pointer, 0x80))
+                            let dismissRevert := mload(add(pointer, 0x40))
                             switch dismissRevert
                             case 0 {
                                 if not(success) {
