@@ -61,9 +61,9 @@ abstract contract SmartExecutorBase {
                             end := add(end, size)
                             if gt(size, end) { revert(0, 0) } // overflow
                             if gt(end, lastOffset) { revert(0, 0) }
-                            if gt(size, add(size, destOffset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             destOffset := add(ptr, destOffset)
                             if gt(ptr, destOffset) { revert(0, 0) } // overflow
+                            if gt(size, add(size, destOffset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             calldatacopy(destOffset, add(i, 65), size)
                             i := end
                         // RETURNDATACOPY
@@ -137,7 +137,6 @@ abstract contract SmartExecutorBase {
                             if lt(offset, 0x80) { revert(0, 0) }
                             let size := calldataload(add(i, 33))
                             if eq(size, RDS_SENTINEL) { size := returndatasize() }
-                            if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             let pointer
                             {
                                 let reference := calldataload(add(i, 65))
@@ -147,7 +146,8 @@ abstract contract SmartExecutorBase {
                                 if gt(pointer, add(pointer, 0x7f)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             }
                             offset := add(ptr, offset)
-                            if gt(ptr, offset) { revert(0, 0) }
+                            if gt(ptr, offset) { revert(0, 0) } // overflow
+                            if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             let success := call(
                                 mload(pointer), // gas
                                 mload(add(pointer, 0x20)), // target
@@ -179,7 +179,6 @@ abstract contract SmartExecutorBase {
                             if lt(offset, 0x80) { revert(0, 0) }
                             let size := calldataload(add(i, 33))
                             if eq(size, RDS_SENTINEL) { size := returndatasize() }
-                            if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             let pointer
                             {
                                 let reference := calldataload(add(i, 65))
@@ -191,6 +190,7 @@ abstract contract SmartExecutorBase {
                             tstore(SELFCALL_ENTRY_SLOT, 1)
                             offset := add(ptr, offset)
                             if gt(ptr, offset) { revert(0, 0) } // overflow
+                            if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             let success := delegatecall(
                                 mload(pointer), // gas
                                 thisAddress, // target
@@ -225,7 +225,6 @@ abstract contract SmartExecutorBase {
                             if lt(offset, 0x80) { revert(0, 0) }
                             let size := calldataload(add(i, 33))
                             if eq(size, RDS_SENTINEL) { size := returndatasize() }
-                            if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             let pointer
                             {
                                 let reference := calldataload(add(i, 65))
@@ -236,6 +235,7 @@ abstract contract SmartExecutorBase {
                             }
                             offset := add(ptr, offset)
                             if gt(ptr, offset) { revert(0, 0) } // overflow
+                            if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             let success := staticcall(
                                 mload(pointer),
                                 mload(add(pointer, 0x20)),
