@@ -95,7 +95,7 @@ abstract contract SmartExecutorBase {
                             if gt(ptr, destOffset) { revert(0, 0) } // overflow
                             offset := add(ptr, offset)
                             if gt(ptr, offset) { revert(0, 0) } // overflow
-                            mcopy(destOffset, add(ptr, offset), size)
+                            mcopy(destOffset, offset, size)
                             i := end
                         // JUMPI
                         } default {
