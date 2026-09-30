@@ -134,15 +134,14 @@ abstract contract SmartExecutorBase {
                             if gt(i, end) { revert(0, 0) } // overflow
                             if gt(end, lastOffset) { revert(0, 0) }
                             let offset := calldataload(add(i, 1))
-                            if lt(offset, 0x80) { revert(0, 0) }
                             let size := calldataload(add(i, 33))
-                            if eq(size, RDS_SENTINEL) { size := returndatasize() }
                             let reference := calldataload(add(i, 65))
+                            if lt(offset, 0x80) { revert(0, 0) }
+                            if eq(size, RDS_SENTINEL) { size := returndatasize() }
                             if lt(reference, 0x80) { revert(0, 0) }
                             reference := add(ptr, reference)
                             if gt(ptr, reference) { revert(0, 0) } // overflow
                             if gt(reference, add(reference, 0x7f)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
-                            
                             offset := add(ptr, offset)
                             if gt(ptr, offset) { revert(0, 0) } // overflow
                             if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
@@ -174,10 +173,10 @@ abstract contract SmartExecutorBase {
                             if gt(i, end) { revert(0, 0) } // overflow
                             if gt(end, lastOffset) { revert(0, 0) }
                             let offset := calldataload(add(i, 1))
-                            if lt(offset, 0x80) { revert(0, 0) }
                             let size := calldataload(add(i, 33))
-                            if eq(size, RDS_SENTINEL) { size := returndatasize() }
                             let reference := calldataload(add(i, 65))
+                            if lt(offset, 0x80) { revert(0, 0) }
+                            if eq(size, RDS_SENTINEL) { size := returndatasize() }
                             if lt(reference, 0x80) { revert(0, 0) }
                             reference := add(ptr, reference)
                             if gt(ptr, reference) { revert(0, 0) } // overflow
@@ -217,10 +216,10 @@ abstract contract SmartExecutorBase {
                             if gt(i, end) { revert(0, 0) } // overflow
                             if gt(end, lastOffset) { revert(0, 0) }
                             let offset := calldataload(add(i, 1))
-                            if lt(offset, 0x80) { revert(0, 0) }
                             let size := calldataload(add(i, 33))
-                            if eq(size, RDS_SENTINEL) { size := returndatasize() }
                             let reference := calldataload(add(i, 65))
+                            if lt(offset, 0x80) { revert(0, 0) }
+                            if eq(size, RDS_SENTINEL) { size := returndatasize() }
                             if lt(reference, 0x80) { revert(0, 0) }
                             reference := add(ptr, reference)
                             if gt(ptr, reference) { revert(0, 0) } // overflow
