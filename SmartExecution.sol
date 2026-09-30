@@ -137,28 +137,26 @@ abstract contract SmartExecutorBase {
                             if lt(offset, 0x80) { revert(0, 0) }
                             let size := calldataload(add(i, 33))
                             if eq(size, RDS_SENTINEL) { size := returndatasize() }
-                            let pointer
-                            {
-                                let reference := calldataload(add(i, 65))
-                                if lt(reference, 0x80) { revert(0, 0) }
-                                pointer := add(ptr, reference)
-                                if gt(ptr, pointer) { revert(0, 0) } // overflow
-                                if gt(pointer, add(pointer, 0x7f)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
-                            }
+                            let reference := calldataload(add(i, 65))
+                            if lt(reference, 0x80) { revert(0, 0) }
+                            reference := add(ptr, reference)
+                            if gt(ptr, reference) { revert(0, 0) } // overflow
+                            if gt(reference, add(reference, 0x7f)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
+                            
                             offset := add(ptr, offset)
                             if gt(ptr, offset) { revert(0, 0) } // overflow
                             if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             let success := call(
-                                mload(pointer), // gas
-                                mload(add(pointer, 0x20)), // target
-                                mload(add(pointer, 0x40)), // value
+                                mload(reference), // gas
+                                mload(add(reference, 0x20)), // target
+                                mload(add(reference, 0x40)), // value
                                 offset, // relative offset
                                 size,
                                 0,
                                 0
                             )
                             mstore(add(ptr, 0x60), returndatasize())
-                            let dismissRevert := mload(add(pointer, 0x60))
+                            let dismissRevert := mload(add(reference, 0x60))
                             if and(iszero(iszero(dismissRevert)), iszero(success)) {
                                 returndatacopy(ptr, 0, returndatasize())
                                 revert(0, returndatasize())
@@ -179,20 +177,17 @@ abstract contract SmartExecutorBase {
                             if lt(offset, 0x80) { revert(0, 0) }
                             let size := calldataload(add(i, 33))
                             if eq(size, RDS_SENTINEL) { size := returndatasize() }
-                            let pointer
-                            {
-                                let reference := calldataload(add(i, 65))
-                                if lt(reference, 0x80) { revert(0, 0) }
-                                pointer := add(ptr, reference)
-                                if gt(ptr, pointer) { revert(0, 0) } // overflow
-                                if gt(pointer, add(pointer, 0x3f)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
-                            }
+                            let reference := calldataload(add(i, 65))
+                            if lt(reference, 0x80) { revert(0, 0) }
+                            reference := add(ptr, reference)
+                            if gt(ptr, reference) { revert(0, 0) } // overflow
+                            if gt(reference, add(reference, 0x3f)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             tstore(SELFCALL_ENTRY_SLOT, 1)
                             offset := add(ptr, offset)
                             if gt(ptr, offset) { revert(0, 0) } // overflow
                             if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             let success := delegatecall(
-                                mload(pointer), // gas
+                                mload(reference), // gas
                                 thisAddress, // target
                                 offset, // relative offset
                                 size,
@@ -201,7 +196,7 @@ abstract contract SmartExecutorBase {
                             )
                             mstore(add(ptr, 0x60), returndatasize())
                             tstore(SELFCALL_ENTRY_SLOT, 0)
-                            let dismissRevert := mload(add(pointer, 0x20))
+                            let dismissRevert := mload(add(reference, 0x20))
                             if and(iszero(iszero(dismissRevert)), iszero(success)) {
                                 returndatacopy(ptr, 0, returndatasize())
                                 revert(0, returndatasize())
@@ -225,27 +220,24 @@ abstract contract SmartExecutorBase {
                             if lt(offset, 0x80) { revert(0, 0) }
                             let size := calldataload(add(i, 33))
                             if eq(size, RDS_SENTINEL) { size := returndatasize() }
-                            let pointer
-                            {
-                                let reference := calldataload(add(i, 65))
-                                if lt(reference, 0x80) { revert(0, 0) }
-                                pointer := add(ptr, reference)
-                                if gt(ptr, pointer) { revert(0, 0) } // overflow
-                                if gt(pointer, add(pointer, 0x5f)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
-                            }
+                            let reference := calldataload(add(i, 65))
+                            if lt(reference, 0x80) { revert(0, 0) }
+                            reference := add(ptr, reference)
+                            if gt(ptr, reference) { revert(0, 0) } // overflow
+                            if gt(reference, add(reference, 0x5f)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             offset := add(ptr, offset)
                             if gt(ptr, offset) { revert(0, 0) } // overflow
                             if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             let success := staticcall(
-                                mload(pointer),
-                                mload(add(pointer, 0x20)),
+                                mload(reference),
+                                mload(add(reference, 0x20)),
                                 offset,
                                 size,
                                 0,
                                 0
                             )
                             mstore(add(ptr, 0x60), returndatasize())
-                            let dismissRevert := mload(add(pointer, 0x40))
+                            let dismissRevert := mload(add(reference, 0x40))
                             if and(iszero(iszero(dismissRevert)), iszero(success)) {
                                 returndatacopy(ptr, 0, returndatasize())
                                 revert(0, returndatasize())
