@@ -141,8 +141,8 @@ abstract contract SmartExecutorBase {
                             if lt(offset, 0x80) { revert(0, 0) }
                             offset := add(ptr, offset)
                             if gt(ptr, offset) { revert(0, 0) } // overflow
-                            if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             if eq(size, RDS_SENTINEL) { size := returndatasize() }
+                            if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             if lt(reference, 0x80) { revert(0, 0) }
                             reference := add(ptr, reference)
                             if gt(ptr, reference) { revert(0, 0) } // overflow
@@ -180,8 +180,8 @@ abstract contract SmartExecutorBase {
                             if lt(offset, 0x80) { revert(0, 0) }
                             offset := add(ptr, offset)
                             if gt(ptr, offset) { revert(0, 0) } // overflow
-                            if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             if eq(size, RDS_SENTINEL) { size := returndatasize() }
+                            if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             if lt(reference, 0x80) { revert(0, 0) }
                             reference := add(ptr, reference)
                             if gt(ptr, reference) { revert(0, 0) } // overflow
@@ -223,8 +223,8 @@ abstract contract SmartExecutorBase {
                             if lt(offset, 0x80) { revert(0, 0) }
                             offset := add(ptr, offset)
                             if gt(ptr, offset) { revert(0, 0) } // overflow
-                            if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             if eq(size, RDS_SENTINEL) { size := returndatasize() }
+                            if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
                             if lt(reference, 0x80) { revert(0, 0) }
                             reference := add(ptr, reference)
                             if gt(ptr, reference) { revert(0, 0) } // overflow
