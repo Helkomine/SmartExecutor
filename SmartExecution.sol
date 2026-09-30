@@ -138,10 +138,10 @@ abstract contract SmartExecutorBase {
                             let size := calldataload(add(i, 33))
                             let reference := calldataload(add(i, 65))
                             let dest := calldataload(add(i, 97))
+                            if lt(offset, 0x80) { revert(0, 0) }
                             offset := add(ptr, offset)
                             if gt(ptr, offset) { revert(0, 0) } // overflow
                             if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
-                            if lt(offset, 0x80) { revert(0, 0) }
                             if eq(size, RDS_SENTINEL) { size := returndatasize() }
                             if lt(reference, 0x80) { revert(0, 0) }
                             reference := add(ptr, reference)
@@ -177,10 +177,10 @@ abstract contract SmartExecutorBase {
                             let size := calldataload(add(i, 33))
                             let reference := calldataload(add(i, 65))
                             let dest := calldataload(add(i, 97))
+                            if lt(offset, 0x80) { revert(0, 0) }
                             offset := add(ptr, offset)
                             if gt(ptr, offset) { revert(0, 0) } // overflow
                             if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
-                            if lt(offset, 0x80) { revert(0, 0) }
                             if eq(size, RDS_SENTINEL) { size := returndatasize() }
                             if lt(reference, 0x80) { revert(0, 0) }
                             reference := add(ptr, reference)
@@ -220,10 +220,10 @@ abstract contract SmartExecutorBase {
                             let size := calldataload(add(i, 33))
                             let reference := calldataload(add(i, 65))
                             let dest := calldataload(add(i, 97))
+                            if lt(offset, 0x80) { revert(0, 0) }
                             offset := add(ptr, offset)
                             if gt(ptr, offset) { revert(0, 0) } // overflow
                             if gt(size, add(size, offset)) { revert(0, 0) } // kiểm tra trần bộ nhớ bằng overflow
-                            if lt(offset, 0x80) { revert(0, 0) }
                             if eq(size, RDS_SENTINEL) { size := returndatasize() }
                             if lt(reference, 0x80) { revert(0, 0) }
                             reference := add(ptr, reference)
