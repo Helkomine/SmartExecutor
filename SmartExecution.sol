@@ -101,6 +101,7 @@ abstract contract SmartExecutorBase {
                         } default {
                             let end := add(i, 65)
                             if gt(i, end) { revert(0, 0) } // overflow
+                            if gt(end, lastOffset) { revert(0, 0) }
                             let b := calldataload(add(i, 1))
                             if lt(b, 0x80) { revert(0, 0) }
                             let jumpPc := calldataload(add(i, 33))
@@ -124,6 +125,7 @@ abstract contract SmartExecutorBase {
                         // CALL
                         case 1 {
                             let newPc := add(i, 129)
+                            if gt(i, newPc) { revert(0, 0) } // overflow
                             if gt(newPc, lastOffset) { revert(0, 0) }
                             let offset := calldataload(add(i, 1))
                             if lt(offset, 0x80) { revert(0, 0) }
@@ -135,7 +137,7 @@ abstract contract SmartExecutorBase {
                                 if lt(reference, 0x80) { revert(0, 0) }
                                 pointer := add(ptr, reference)
                                 if gt(ptr, pointer) { revert(0, 0) } // overflow
-                                if gt(pointer, add(pointer, 0x7f)) { revert(0, 0) } // overflow và kiểm tra biên trên
+                                if gt(pointer, add(pointer, 0x7f)) { revert(0, 0) } // overflow và kiểm tra tuple có đủ 128 byte
                             }
                             let success := call(
                                 mload(pointer), // gas
