@@ -159,7 +159,7 @@ abstract contract SmartExecutorBase {
                             mstore(add(ptr, 0x60), returndatasize())
                             let dismissRevert := mload(add(reference, 0x60))
                             if and(iszero(iszero(dismissRevert)), iszero(success)) {
-                                returndatacopy(ptr, 0, returndatasize())
+                                returndatacopy(0, 0, returndatasize())
                                 revert(0, returndatasize())
                             }
                             if lt(dest, 0x80) { revert(0, 0) }
@@ -199,7 +199,7 @@ abstract contract SmartExecutorBase {
                             tstore(SELFCALL_ENTRY_SLOT, 0)
                             let dismissRevert := mload(add(reference, 0x20))
                             if and(iszero(iszero(dismissRevert)), iszero(success)) {
-                                returndatacopy(ptr, 0, returndatasize())
+                                returndatacopy(0, 0, returndatasize())
                                 revert(0, returndatasize())
                             }
                             if lt(dest, 0x80) { revert(0, 0) }
@@ -240,7 +240,7 @@ abstract contract SmartExecutorBase {
                             mstore(add(ptr, 0x60), returndatasize())
                             let dismissRevert := mload(add(reference, 0x40))
                             if and(iszero(iszero(dismissRevert)), iszero(success)) {
-                                returndatacopy(ptr, 0, returndatasize())
+                                returndatacopy(0, 0, returndatasize())
                                 revert(0, returndatasize())
                             }
                             if lt(dest, 0x80) { revert(0, 0) }
